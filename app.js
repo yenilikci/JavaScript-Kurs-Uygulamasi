@@ -1,6 +1,7 @@
 //Kurs sınıfı
 class Course{
-    constructor(title,instructor,image){ //Kurs başlığı,eğitmen ve kurs resmi
+    constructor(title,instructor,image){ //Kurs başlığı,eğitmen ve kurs resmi parametre olarak alınıyor
+        this.courseId = Math.floor(Math.random()*1000);
         this.title = title;
         this.instructor = instructor;
         this.image = image;
@@ -18,7 +19,7 @@ class UI{
             <td><img style="width:100px;" src="img/${course.image}"></td>
             <td>${course.title}</td>
             <td>${course.instructor}</td>
-            <td><a href="#" class="btn btn-danger btn-sm d-flex justify-content-center delete">Sil</td>
+            <td><a href="#" data-id="${course.courseId}" class="btn btn-danger btn-sm d-flex justify-content-center delete">Sil</td>
         </tr>`; //template literal string oluşturarak yaptım
     
         list.innerHTML += html;
@@ -36,6 +37,7 @@ class UI{
         if(element.classList.contains('delete')){
             element.parentElement.parentElement.remove();
         }
+        return true;
     }
 
     //bildirimleri göster
@@ -54,6 +56,56 @@ class UI{
         },2000); //2 saniye sonra gelen alert sınıfına sahip olan elemanı siler
     }
 }
+
+//Depo sınıfı
+class Storage{
+
+    //local storageden bilgileri getirecek
+    static getCourses(){
+        let courses;
+        if(localStorage.getItem('courses') === null){
+            courses = [];
+        }else{
+            courses = JSON.parse(localStorage.getItem('courses'));
+        }
+        return courses;
+    }
+
+    //getCoursestan aldığı bilgileri gösterecek
+    static displayCourses(){
+        const courses = Storage.getCourses();
+        courses.forEach(course => {
+            const ui = new UI();
+            ui.addCourseToList(course);
+        });
+    }
+
+    //kursu local storage'a ekler
+    static addCourse(course){
+        const courses = Storage.getCourses();
+        courses.push(course);
+        localStorage.setItem('courses',JSON.stringify(courses));
+    }
+
+    //kursu local storagedan siler
+    static deleteCourse(element){
+        if(element.classList.contains('delete')){
+            const id = element.getAttribute('data-id');
+            const courses = Storage.getCourses();
+            courses.forEach((course,index)=>{
+                if(course.courseId == id){
+                    courses.splice(index,1);
+                }
+        });
+        localStorage.setItem('courses',JSON.stringify(courses));
+    }
+}
+
+
+}
+
+//storage üzerinde kursumuz varsa görünür hale gelir
+document.addEventListener('DOMContentLoaded',Storage.displayCourses());
 
 //form üzerinde submit olayı gerçekleşir ise
 document.getElementById('new-course').addEventListener('submit',
@@ -80,6 +132,9 @@ function(e){
         //kursu listeye ekle
         ui.addCourseToList(course);
 
+        //Local storage'a kaydet
+        Storage.addCourse(course);
+
         //kontrolleri sil
         ui.clearControls();
 
@@ -91,7 +146,15 @@ function(e){
 
 document.getElementById('course-list').addEventListener('click',function(e){
     const ui = new UI(); //silme işlemimi ui nesnesi üzerinden yapacağım
-    ui.deleteCourse(e.target);
+    
+    //kurs silme işlemi
+    if(ui.deleteCourse(e.target)==true){
+
+    //Local Storageden de sil
+    Storage.deleteCourse(e.target);
+
     //kurs silindi bildirimi
     ui.showAlert('Kurs silindi','danger');
+
+    }
 });
